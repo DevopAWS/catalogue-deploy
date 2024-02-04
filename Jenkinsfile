@@ -4,84 +4,59 @@ pipeline {
             label 'AGENT-1'
         }
     }
-    environment { 
-        packageVersion = ''
-        nexusURL = '172.31.0.213:8081'
-    }
+    // environment { 
+    //     packageVersion = ''
+    //     nexusURL = '172.31.5.95:8081'
+    // }
     options {
         timeout(time: 1, unit: 'HOURS')
         disableConcurrentBuilds()
+        ansiColor('xterm')
     }
-    // parameters {
-    //     string(name: 'PERSON', defaultValue: 'Mr Jenkins', description: 'Who should I say hello to?')
-
-    //     text(name: 'BIOGRAPHY', defaultValue: '', description: 'Enter some information about the person')
-
-    //     booleanParam(name: 'TOGGLE', defaultValue: true, description: 'Toggle this value')
-
-    //     choice(name: 'CHOICE', choices: ['One', 'Two', 'Three'], description: 'Pick something')
-
-    //     password(name: 'PASSWORD', defaultValue: 'SECRET', description: 'Enter a password')
-    // }
+    parameters {
+        string(name: 'version', defaultValue: '', description: 'What is the artifact version?')
+        string(name: 'environment', defaultValue: 'dev', description: 'What is environment?')
+    }
     // build
     stages {
-        stage('Get the version') {
-            steps {
-                script {
-                    def packageJson = readJSON file: 'package.json'
-                    packageVersion = packageJson.version
-                    echo "application version: $packageVersion"
-                }
-            }
-        }
-        stage('Install dependencies') {
+        stage('Print version') {
             steps {
                 sh """
-                    npm install
+                    echo "version: ${params.version}"
+                    echo "environment: ${params.environment}"
                 """
             }
         }
-        stage('Build') {
-            steps {
-                sh """
-                    ls -la
-                    zip -q -r catalogue.zip ./* -x ".git" -x "*.zip"
-                    ls -ltr
-                """
-            }
-        }
-        stage('Publish Artifact') {
-            steps {
-                 nexusArtifactUploader(
-                    nexusVersion: 'nexus3',
-                    protocol: 'http',
-                    nexusUrl: "${nexusURL}",
-                    groupId: 'com.roboshop',
-                    version: "${packageVersion}",
-                    repository: 'catalogue',
-                    credentialsId: 'nexus-auth',
-                    artifacts: [
-                        [artifactId: 'catalogue',
-                        classifier: '',
-                        file: 'catalogue.zip',
-                        type: 'zip']
-                    ]
-                )
-            }
-        }
-        stage('Deploy') {
-            steps {
-                script {
-                        def params = [
-                            string(name: 'version', value: "$packageVersion"),
-                            string(name: 'environment', value: "dev")
-                        ]
-                        build job: "catalogue-deploy", wait: true, parameters: params
-                    }
-            }
-        }
+
+        // stage('Init') {
+        //     steps {
+        //         sh """
+        //             cd terraform
+        //             terraform init --backend-config=${params.environment}/backend.tf -reconfigure
+        //         """
+        //     }
+        // }
+
+        // stage('Plan') {
+        //     steps {
+        //         sh """
+        //             cd terraform
+        //             terraform plan -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}"
+        //         """
+        //     }
+        // }
+
+        // stage('Apply') {
+        //     steps {
+        //         sh """
+        //             cd terraform
+        //             terraform apply -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve
+        //         """
+        //     }
+        // }
+        
     }
-    post build
+    // post build
     post { 
         always { 
             echo 'I will always say Hello again!'
